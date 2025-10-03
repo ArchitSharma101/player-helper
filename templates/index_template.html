@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Movie Hub | Home</title>
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+<header>
+    <h1>Movie Hub</h1>
+    <h3>Explore Movies from All Genres</h3>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="movies.html">Movies</a>
+        <a href="genres.html">Genres</a>
+        <a href="top-rated.html">Top Rated</a>
+        <a href="about.html">About</a>
+    </nav>
+</header>
+
+<main id="movie-list">
+  {% for movie in movies %}
+  <div class="movie-card">
+      <h2 class="title"><a href="movies/{{ movie.id }}.html">{{ movie.title }}</a></h2>
+      <p class="genre">{{ movie.genre }}</p>
+      <p class="description">{{ movie.description }}</p>
+  </div>
+  {% endfor %}
+</main>
+</body>
+</html>

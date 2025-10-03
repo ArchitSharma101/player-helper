@@ -1,0 +1,4 @@
+Flask
+requests
+PyGithub
+Jinja2
