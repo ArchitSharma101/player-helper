@@ -6,23 +6,13 @@ from github import Github, GithubException
 app = Flask(__name__, static_folder="static")
 
 # Environment variables
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
-if not TMDB_API_KEY:
-    raise RuntimeError("TMDB_API_KEY environment variable must be set!")
-
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "d69381011732433769e410a89558dfde")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-if not GITHUB_TOKEN:
-    raise RuntimeError("GITHUB_TOKEN environment variable must be set!")
-
 GITHUB_REPO = os.environ.get("GITHUB_REPO", "ArchitSharma101/test-player-01")
-if not GITHUB_REPO:
-    raise RuntimeError("GITHUB_REPO environment variable must be set!")
-
 BRANCH = "main"
 
-# Check required environment variables
-#if not TMDB_API_KEY or not GITHUB_TOKEN or not GITHUB_REPO:
-#    raise RuntimeError("TMDB_API_KEY, GITHUB_TOKEN, and GITHUB_REPO must be set!")
+if not GITHUB_TOKEN:
+    raise RuntimeError("GITHUB_TOKEN environment variable is required!")
 
 # Initialize GitHub client
 try:
@@ -35,10 +25,13 @@ except GithubException as e:
 MOVIE_TEMPLATE_PATH = "movie_template.html"
 MOVIES_JSON_PATH = "movies.json"
 
-# Serve favicon
+# Serve favicon safely
 @app.route("/favicon.ico")
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
+    path = os.path.join(app.root_path, 'static', 'favicon.ico')
+    if os.path.exists(path):
+        return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
+    return "", 204  # Return empty response if no favicon
 
 # Root endpoint for health check
 @app.route("/")
@@ -127,12 +120,5 @@ def add_movie():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    # For Render/Gunicorn, use 0.0.0.0 as host
     app.run(host="0.0.0.0", port=port)
-
-
-
-
-
-
-
-
