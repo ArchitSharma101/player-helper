@@ -96,6 +96,6 @@ def add_movie():
     return jsonify({"success": True, "movie_id": movie_id})
 
 if __name__ == "__main__":
+    import os
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
-
+    app.run(host="0.0.0.0", port=port)
