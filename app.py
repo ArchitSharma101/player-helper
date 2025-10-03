@@ -2,8 +2,10 @@ import os
 import json
 from flask import Flask, request, jsonify, send_from_directory
 from github import Github, GithubException
+from flask_cors import CORS
 
 app = Flask(__name__, static_folder="static")
+CORS(app)
 
 # Environment variables
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "d69381011732433769e410a89558dfde")
@@ -122,4 +124,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     # For Render/Gunicorn, use 0.0.0.0 as host
     app.run(host="0.0.0.0", port=port)
+
 
