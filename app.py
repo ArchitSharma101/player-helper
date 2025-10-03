@@ -1,113 +1,99 @@
-from flask import Flask, request, render_template
-import requests, json, os
-from jinja2 import Template
+import os
+import json
+from flask import Flask, request, jsonify
 from github import Github
-
-# CONFIG
-TMDB_API_KEY = "YOUR_TMDB_API_KEY"
-GITHUB_TOKEN = "YOUR_GITHUB_TOKEN"
-GITHUB_REPO = "username/repo-name"  # e.g., waterbears/movie-hub
-BRANCH = "main"  # GitHub branch
 
 app = Flask(__name__)
 
-# Load movies
-MOVIES_FILE = "movies.json"
-if os.path.exists(MOVIES_FILE):
-    with open(MOVIES_FILE) as f:
-        movies = json.load(f)
-else:
-    movies = []
+# Environment variables
+TMDB_API_KEY = os.environ.get("d69381011732433769e410a89558dfde")
+GITHUB_TOKEN = os.environ.get("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")
+GITHUB_REPO = os.environ.get("ArchitSharma101/test-player-01")  # e.g., 'username/repo'
+BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 
-# Homepage route
-@app.route("/")
-def home():
-    return render_template("index_template.html", movies=movies)
+# Movie template file path (local)
+MOVIE_TEMPLATE_PATH = "movie_template.html"
 
-# Add movie form route
-@app.route("/add-movie", methods=["GET", "POST"])
+# Movies JSON path (local)
+MOVIES_JSON_PATH = "movies.json"
+
+# Initialize GitHub client
+g = Github(GITHUB_TOKEN)
+repo = g.get_repo(GITHUB_REPO)
+
+@app.route("/add_movie", methods=["POST"])
 def add_movie():
-    global movies
-    if request.method == "POST":
-        movie_name = request.form["movie_name"]
-        # Fetch movie from TMDB
-        tmdb_data = fetch_movie_from_tmdb(movie_name)
-        if tmdb_data:
-            # Generate movie page
-            create_movie_page(tmdb_data)
-            # Update homepage
-            movies.append(tmdb_data)
-            update_homepage()
-            # Save locally
-            with open(MOVIES_FILE, "w") as f:
-                json.dump(movies, f, indent=2)
-            # Push to GitHub
-            push_to_github(tmdb_data)
-            return f"Movie '{movie_name}' added successfully!"
-        else:
-            return f"Movie '{movie_name}' not found."
-    return '''
-        <form method="POST">
-            Movie Name: <input name="movie_name">
-            <button type="submit">Add Movie</button>
-        </form>
-    '''
+    data = request.json
+    movie_name = data.get("name")
 
-# Fetch TMDB
-def fetch_movie_from_tmdb(name):
-    url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={name}"
-    r = requests.get(url).json()
-    results = r.get("results")
+    if not movie_name:
+        return jsonify({"error": "Movie name required"}), 400
+
+    # Fetch TMDB movie data
+    import requests
+    search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={movie_name}"
+    search_resp = requests.get(search_url).json()
+    results = search_resp.get("results")
     if not results:
-        return None
+        return jsonify({"error": "Movie not found in TMDB"}), 404
+
     movie = results[0]
-    return {
-        "id": movie["id"],
-        "title": movie["title"],
-        "genre": " / ".join([g["name"] for g in movie.get("genre_ids", [])]) or "Unknown",
-        "description": movie.get("overview", "No description available"),
-        "year": movie.get("release_date", "N/A")[:4],
-        "director": "Unknown"
-    }
+    movie_id = movie["id"]
+    title = movie.get("title", "")
+    overview = movie.get("overview", "")
+    release_date = movie.get("release_date", "")
+    year = release_date.split("-")[0] if release_date else ""
+    # For simplicity, director as "Unknown"
+    director = "Unknown"
 
-# Create movie HTML page
-def create_movie_page(data):
-    with open("templates/movie_template.html") as f:
-        template = Template(f.read())
-    html = template.render(**data)
-    os.makedirs(f"movies", exist_ok=True)
-    with open(f"movies/{data['id']}.html", "w") as f:
-        f.write(html)
+    # Read movie template
+    with open(MOVIE_TEMPLATE_PATH, "r", encoding="utf-8") as f:
+        template = f.read()
 
-# Update homepage
-def update_homepage():
-    with open("templates/index_template.html") as f:
-        template = Template(f.read())
-    html = template.render(movies=movies)
-    with open("index.html", "w") as f:
-        f.write(html)
+    # Replace placeholders
+    html_content = template.replace("{{TITLE}}", title)\
+                           .replace("{{DIRECTOR}}", director)\
+                           .replace("{{YEAR}}", year)\
+                           .replace("{{DESCRIPTION}}", overview)\
+                           .replace("{{TMDB_ID}}", str(movie_id))
 
-# Push to GitHub
-def push_to_github(movie_data):
-    g = Github(GITHUB_TOKEN)
-    repo = g.get_repo(GITHUB_REPO)
+    # Path to push in repo
+    movie_file_path = f"movies/{movie_id}.html"
 
-    # Add movie page
-    path = f"movies/{movie_data['id']}.html"
-    with open(path, "r") as f:
-        content = f.read()
+    # Push movie page to GitHub
     try:
-        repo.create_file(path, f"Add movie {movie_data['title']}", content, branch=BRANCH)
+        repo.create_file(movie_file_path, f"Add movie {title}", html_content, branch=BRANCH)
     except:
-        # If file exists, update instead
-        file = repo.get_contents(path, ref=BRANCH)
-        repo.update_file(path, f"Update movie {movie_data['title']}", content, file.sha, branch=BRANCH)
+        # If file exists, update
+        contents = repo.get_contents(movie_file_path, ref=BRANCH)
+        repo.update_file(contents.path, f"Update movie {title}", html_content, contents.sha, branch=BRANCH)
 
-    # Update homepage
-    with open("index.html", "r") as f:
-        content = f.read()
-    file = repo.get_contents("index.html", ref=BRANCH)
-    repo.update_file("index.html", f"Update homepage with {movie_data['title']}", content, file.sha, branch=BRANCH)
+    # Update movies.json
+    try:
+        contents = repo.get_contents(MOVIES_JSON_PATH, ref=BRANCH)
+        movies_list = json.loads(contents.decoded_content.decode())
+    except:
+        movies_list = []
+
+    # Avoid duplicates
+    if not any(m.get("id") == movie_id for m in movies_list):
+        movies_list.append({
+            "id": movie_id,
+            "title": title,
+            "genre": " / ".join([g.get("name", "") for g in movie.get("genres", [])]) if movie.get("genres") else "",
+            "description": overview
+        })
+
+    updated_json = json.dumps(movies_list, indent=2)
+
+    # Push updated JSON
+    try:
+        repo.update_file(contents.path, f"Update movies.json for {title}", updated_json, contents.sha, branch=BRANCH)
+    except:
+        repo.create_file(MOVIES_JSON_PATH, f"Create movies.json with {title}", updated_json, branch=BRANCH)
+
+    return jsonify({"success": True, "movie_id": movie_id})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
