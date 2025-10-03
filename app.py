@@ -12,8 +12,8 @@ GITHUB_REPO = os.environ.get("ArchitSharma101/test-player-01")
 BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 
 # Check required environment variables
-if not TMDB_API_KEY or not GITHUB_TOKEN or not GITHUB_REPO:
-    raise RuntimeError("TMDB_API_KEY, GITHUB_TOKEN, and GITHUB_REPO must be set!")
+#if not TMDB_API_KEY or not GITHUB_TOKEN or not GITHUB_REPO:
+#    raise RuntimeError("TMDB_API_KEY, GITHUB_TOKEN, and GITHUB_REPO must be set!")
 
 # Initialize GitHub client
 try:
@@ -119,4 +119,5 @@ def add_movie():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
