@@ -1,9 +1,9 @@
 import os
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from github import Github, GithubException
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 
 # Environment variables
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
@@ -11,9 +11,9 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 GITHUB_REPO = os.environ.get("GITHUB_REPO")
 BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 
-# Check for required environment variables
+# Check required environment variables
 if not TMDB_API_KEY or not GITHUB_TOKEN or not GITHUB_REPO:
-    raise RuntimeError("TMDB_API_KEY, GITHUB_TOKEN, and GITHUB_REPO must be set in environment!")
+    raise RuntimeError("TMDB_API_KEY, GITHUB_TOKEN, and GITHUB_REPO must be set!")
 
 # Initialize GitHub client
 try:
@@ -26,6 +26,17 @@ except GithubException as e:
 MOVIE_TEMPLATE_PATH = "movie_template.html"
 MOVIES_JSON_PATH = "movies.json"
 
+# Serve favicon
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico')
+
+# Root endpoint for health check
+@app.route("/")
+def home():
+    return jsonify({"status": "ok", "message": "Server is running"}), 200
+
+# Add movie endpoint
 @app.route("/add_movie", methods=["POST"])
 def add_movie():
     data = request.json
@@ -34,13 +45,12 @@ def add_movie():
     if not movie_name:
         return jsonify({"error": "Movie name required"}), 400
 
-    # Fetch TMDB movie data
     import requests
     try:
         search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={movie_name}"
-        search_resp = requests.get(search_url, timeout=10)
-        search_resp.raise_for_status()
-        results = search_resp.json().get("results")
+        resp = requests.get(search_url, timeout=10)
+        resp.raise_for_status()
+        results = resp.json().get("results")
         if not results:
             return jsonify({"error": "Movie not found in TMDB"}), 404
     except requests.RequestException as e:
@@ -54,14 +64,13 @@ def add_movie():
     year = release_date.split("-")[0] if release_date else ""
     director = "Unknown"
 
-    # Read movie template
+    # Read template
     try:
         with open(MOVIE_TEMPLATE_PATH, "r", encoding="utf-8") as f:
             template = f.read()
     except FileNotFoundError:
         return jsonify({"error": f"{MOVIE_TEMPLATE_PATH} not found"}), 500
 
-    # Replace placeholders
     html_content = template.replace("{{TITLE}}", title)\
                            .replace("{{DIRECTOR}}", director)\
                            .replace("{{YEAR}}", year)\
@@ -70,7 +79,7 @@ def add_movie():
 
     movie_file_path = f"movies/{movie_id}.html"
 
-    # Push/update movie page to GitHub
+    # Push/update movie page
     try:
         try:
             contents = repo.get_contents(movie_file_path, ref=BRANCH)
