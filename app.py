@@ -73,11 +73,11 @@ def add_movie():
     except FileNotFoundError:
         return jsonify({"error": f"{MOVIE_TEMPLATE_PATH} not found"}), 500
 
-    html_content = template.replace("{{TITLE}}", title)\
-                           .replace("{{DIRECTOR}}", director)\
-                           .replace("{{YEAR}}", year)\
-                           .replace("{{DESCRIPTION}}", overview)\
-                           .replace("{{TMDB_ID}}", str(movie_id))
+    html_content = template.replace("{{ title }}", title)\
+                       .replace("{{ director }}", director)\
+                       .replace("{{ year }}", year)\
+                       .replace("{{ description }}", overview)\
+                       .replace("{{ tmdb_id }}", str(movie_id))
 
     movie_file_path = f"movies/{movie_id}.html"
 
@@ -122,3 +122,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     # For Render/Gunicorn, use 0.0.0.0 as host
     app.run(host="0.0.0.0", port=port)
+
