@@ -8,8 +8,8 @@ app = Flask(__name__, static_folder="static")
 # Environment variables
 TMDB_API_KEY = "d69381011732433769e410a89558dfde"
 GITHUB_TOKEN = "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"
-GITHUB_REPO = "ArchitSharma101/test-player-01"
-BRANCH = os.environ.get("GITHUB_BRANCH", "main")
+GITHUB_REPO = "ArchitSharma101/player-helper"
+BRANCH = "main"
 
 # Check required environment variables
 #if not TMDB_API_KEY or not GITHUB_TOKEN or not GITHUB_REPO:
@@ -119,6 +119,7 @@ def add_movie():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
