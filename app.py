@@ -5,10 +5,11 @@ from github import Github
 
 app = Flask(__name__)
 
+
 # Environment variables
-TMDB_API_KEY = os.environ.get("d69381011732433769e410a89558dfde")
-GITHUB_TOKEN = os.environ.get("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")
-GITHUB_REPO = os.environ.get("ArchitSharma101/test-player-01")  # e.g., 'username/repo'
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+GITHUB_REPO = os.environ.get("GITHUB_REPO") 
 BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 
 # Movie template file path (local)
@@ -97,3 +98,4 @@ def add_movie():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
